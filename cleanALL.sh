@@ -76,6 +76,5 @@ fi
 
 echo -e "\e[32m[+] Cleaning SSH traces...\e[0m"
 echo "" > ~/.ssh/known_hosts 2>/dev/null
-echo "" > ~/.ssh/authorized_keys 2>/dev/null
 
 echo -e "\e[33m\n[!] Cleanup completed!\n\e[0m"
